@@ -1,3 +1,38 @@
 <resources>
     <string name="app_name">MeteoraWeather</string>
+
+    <!-- Ana sayfa -->
+    <string name="home_title">🌤️ Şehirler</string>
+    <string name="city_count">%1$d şehir</string>
+    <string name="back_to_cities">← Şehirler</string>
+
+    <!-- Arama -->
+    <string name="search_placeholder">Şehir adı yazın ve arayın...</string>
+
+    <!-- Detay kartları -->
+    <string name="label_humidity">Nem</string>
+    <string name="label_wind">Rüzgar</string>
+    <string name="label_pressure">Basınç</string>
+
+    <!-- Yapay zeka önerileri -->
+    <string name="ai_section_title">✨ Yapay Zeka Asistanı Önerileri</string>
+    <string name="ai_clothing_title">🧥 Kıyafet Önerisi</string>
+    <string name="ai_clothing_content">%1$s için anlık hava koşullarına uygun katmanlı giysiler ve mevsimlik dış giyim tercih edebilirsin.</string>
+    <string name="ai_activity_title">🚶‍♂️ Aktivite Önerisi</string>
+    <string name="ai_activity_content">%1$s genelinde dışarıda vakit geçirmek ve plan yapmak için havanın durumunu değerlendirebilirsin.</string>
+
+    <!-- 5 günlük tahmin -->
+    <string name="forecast_title">📅 5 Günlük Hava Durumu (%1$s)</string>
+
+    <!-- Şehir listesi -->
+    <string name="search_results_title">🔍 Arama Sonuçları</string>
+    <string name="favorite_cities_title">📍 Sık Bakılan Şehirler</string>
+    <string name="no_city_match">Aradığınız kritere uygun şehir bulunamadı.</string>
+
+    <!-- Şehir bulunamadı durumu -->
+    <string name="city_not_found_title">Şehir bulunamadı</string>
+    <string name="city_no_data_short">Veri yakında</string>
+    <string name="city_no_data_title">Veri henüz yok</string>
+    <string name="city_no_data_message">%1$s için hava durumu verisi henüz eklenmedi. Gerçek hava durumu servisine bağlanınca burada görünecek.</string>
+    <string name="city_not_found_message">\"%1$s\" için hava durumu verisi yok. Aşağıdaki şehirlerden birini seçebilirsin.</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.merve.meteoraweather.ui.screen
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -30,11 +31,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.merve.meteoraweather.R
+import java.text.Collator
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
@@ -53,224 +58,392 @@ data class CityWeatherInfo(
     val forecasts: List<DailyForecast>
 )
 
+// Örnek şehir verisi. Uygulama açıldığında BİR KEZ oluşur (composable içinde değil, her çizimde yeniden kurulmaz).
+// Gerçek API'ye geçince bu blok data katmanına (repository) taşınacak.
+internal val cityDatabase: Map<String, CityWeatherInfo> = mapOf(
+    "İstanbul" to CityWeatherInfo(
+        temp = "19°",
+        condition = "Kapalı / Bulutlu (Hissedilen 18°)",
+        humidity = "%74",
+        wind = "13.8 km/sa",
+        pressure = "1015 hPa",
+        animationType = "cloud",
+        forecasts = listOf(
+            DailyForecast("Pazartesi", "19° / 12°", "Bulutlu"),
+            DailyForecast("Salı", "21° / 13°", "Güneşli"),
+            DailyForecast("Çarşamba", "18° / 11°", "Yağmurlu"),
+            DailyForecast("Perşembe", "20° / 12°", "Parçalı Bulutlu"),
+            DailyForecast("Cuma", "22° / 14°", "Güneşli")
+        )
+    ),
+    "Ankara" to CityWeatherInfo(
+        temp = "16°",
+        condition = "Parçalı Bulutlu (Hissedilen 15°)",
+        humidity = "%65",
+        wind = "10.2 km/sa",
+        pressure = "1018 hPa",
+        animationType = "cloud",
+        forecasts = listOf(
+            DailyForecast("Pazartesi", "16° / 8°", "Parçalı Bulutlu"),
+            DailyForecast("Salı", "18° / 9°", "Güneşli"),
+            DailyForecast("Çarşamba", "15° / 7°", "Yağmurlu"),
+            DailyForecast("Perşembe", "17° / 8°", "Güneşli"),
+            DailyForecast("Cuma", "19° / 10°", "Açık")
+        )
+    ),
+    "İzmir" to CityWeatherInfo(
+        temp = "24°",
+        condition = "Güneşli (Hissedilen 23°)",
+        humidity = "%50",
+        wind = "15.0 km/sa",
+        pressure = "1012 hPa",
+        animationType = "sun",
+        forecasts = listOf(
+            DailyForecast("Pazartesi", "24° / 15°", "Güneşli"),
+            DailyForecast("Salı", "26° / 16°", "Açık"),
+            DailyForecast("Çarşamba", "23° / 14°", "Bulutlu"),
+            DailyForecast("Perşembe", "25° / 15°", "Güneşli"),
+            DailyForecast("Cuma", "27° / 17°", "Güneşli")
+        )
+    ),
+    "Tekirdağ" to CityWeatherInfo(
+        temp = "17°",
+        condition = "Bulutlu (Hissedilen 16°)",
+        humidity = "%72",
+        wind = "18.0 km/sa",
+        pressure = "1014 hPa",
+        animationType = "cloud",
+        forecasts = listOf(
+            DailyForecast("Pazartesi", "17° / 10°", "Bulutlu"),
+            DailyForecast("Salı", "19° / 11°", "Güneşli"),
+            DailyForecast("Çarşamba", "16° / 9°", "Yağmurlu"),
+            DailyForecast("Perşembe", "18° / 10°", "Parçalı Bulutlu"),
+            DailyForecast("Cuma", "20° / 12°", "Güneşli")
+        )
+    ),
+    "Bursa" to CityWeatherInfo(
+        temp = "18°",
+        condition = "Bulutlu (Hissedilen 17°)",
+        humidity = "%70",
+        wind = "8.5 km/sa",
+        pressure = "1014 hPa",
+        animationType = "rain",
+        forecasts = listOf(
+            DailyForecast("Pazartesi", "18° / 10°", "Bulutlu"),
+            DailyForecast("Salı", "20° / 11°", "Güneşli"),
+            DailyForecast("Çarşamba", "17° / 9°", "Yağmurlu"),
+            DailyForecast("Perşembe", "19° / 10°", "Parçalı Bulutlu"),
+            DailyForecast("Cuma", "21° / 12°", "Güneşli")
+        )
+    ),
+    "Antalya" to CityWeatherInfo(
+        temp = "27°",
+        condition = "Açık / Güneşli (Hissedilen 26°)",
+        humidity = "%45",
+        wind = "12.0 km/sa",
+        pressure = "1010 hPa",
+        animationType = "sun",
+        forecasts = listOf(
+            DailyForecast("Pazartesi", "27° / 18°", "Açık"),
+            DailyForecast("Salı", "28° / 19°", "Güneşli"),
+            DailyForecast("Çarşamba", "26° / 17°", "Güneşli"),
+            DailyForecast("Perşembe", "29° / 20°", "Açık"),
+            DailyForecast("Cuma", "30° / 21°", "Güneşli")
+        )
+    ),
+    "Trabzon" to CityWeatherInfo(
+        temp = "17°",
+        condition = "Yağmurlu (Hissedilen 16°)",
+        humidity = "%80",
+        wind = "14.0 km/sa",
+        pressure = "1011 hPa",
+        animationType = "rain",
+        forecasts = listOf(
+            DailyForecast("Pazartesi", "17° / 11°", "Yağmurlu"),
+            DailyForecast("Salı", "18° / 12°", "Bulutlu"),
+            DailyForecast("Çarşamba", "16° / 10°", "Yağmurlu"),
+            DailyForecast("Perşembe", "19° / 12°", "Parçalı Bulutlu"),
+            DailyForecast("Cuma", "20° / 13°", "Güneşli")
+        )
+    ),
+    "Konya" to CityWeatherInfo(
+        temp = "14°",
+        condition = "Açık (Hissedilen 13°)",
+        humidity = "%48",
+        wind = "9.0 km/sa",
+        pressure = "1020 hPa",
+        animationType = "sun",
+        forecasts = listOf(
+            DailyForecast("Pazartesi", "14° / 5°", "Açık"),
+            DailyForecast("Salı", "16° / 6°", "Güneşli"),
+            DailyForecast("Çarşamba", "15° / 5°", "Parçalı Bulutlu"),
+            DailyForecast("Perşembe", "17° / 7°", "Güneşli"),
+            DailyForecast("Cuma", "18° / 8°", "Açık")
+        )
+    ),
+    "Adana" to CityWeatherInfo(
+        temp = "26°",
+        condition = "Güneşli (Hissedilen 27°)",
+        humidity = "%58",
+        wind = "11.0 km/sa",
+        pressure = "1011 hPa",
+        animationType = "sun",
+        forecasts = listOf(
+            DailyForecast("Pazartesi", "26° / 17°", "Güneşli"),
+            DailyForecast("Salı", "27° / 18°", "Açık"),
+            DailyForecast("Çarşamba", "25° / 16°", "Parçalı Bulutlu"),
+            DailyForecast("Perşembe", "28° / 18°", "Güneşli"),
+            DailyForecast("Cuma", "29° / 19°", "Güneşli")
+        )
+    ),
+    "Gaziantep" to CityWeatherInfo(
+        temp = "20°",
+        condition = "Parçalı Bulutlu (Hissedilen 19°)",
+        humidity = "%52",
+        wind = "10.5 km/sa",
+        pressure = "1016 hPa",
+        animationType = "cloud",
+        forecasts = listOf(
+            DailyForecast("Pazartesi", "20° / 9°", "Parçalı Bulutlu"),
+            DailyForecast("Salı", "22° / 10°", "Güneşli"),
+            DailyForecast("Çarşamba", "19° / 8°", "Bulutlu"),
+            DailyForecast("Perşembe", "21° / 10°", "Güneşli"),
+            DailyForecast("Cuma", "23° / 11°", "Açık")
+        )
+    ),
+    "Samsun" to CityWeatherInfo(
+        temp = "16°",
+        condition = "Yağmurlu (Hissedilen 15°)",
+        humidity = "%78",
+        wind = "16.0 km/sa",
+        pressure = "1013 hPa",
+        animationType = "rain",
+        forecasts = listOf(
+            DailyForecast("Pazartesi", "16° / 11°", "Yağmurlu"),
+            DailyForecast("Salı", "17° / 12°", "Bulutlu"),
+            DailyForecast("Çarşamba", "15° / 10°", "Yağmurlu"),
+            DailyForecast("Perşembe", "18° / 12°", "Parçalı Bulutlu"),
+            DailyForecast("Cuma", "19° / 13°", "Güneşli")
+        )
+    ),
+    "Eskişehir" to CityWeatherInfo(
+        temp = "15°",
+        condition = "Bulutlu (Hissedilen 14°)",
+        humidity = "%62",
+        wind = "12.0 km/sa",
+        pressure = "1017 hPa",
+        animationType = "cloud",
+        forecasts = listOf(
+            DailyForecast("Pazartesi", "15° / 6°", "Bulutlu"),
+            DailyForecast("Salı", "17° / 7°", "Güneşli"),
+            DailyForecast("Çarşamba", "14° / 5°", "Yağmurlu"),
+            DailyForecast("Perşembe", "16° / 6°", "Parçalı Bulutlu"),
+            DailyForecast("Cuma", "18° / 8°", "Güneşli")
+        )
+    )
+)
+
+// ---------- Ortak yardımcılar (ana sayfa ve detay sayfası birlikte kullanır) ----------
+
+internal class AppPalette(
+    val background: Color,
+    val card: Color,
+    val aiCard: Color,
+    val text: Color,
+    val secondary: Color,
+    val accent: Color
+)
+
+// Tema Renk Paletleri (tek yerden)
+internal fun appPalette(isDark: Boolean): AppPalette =
+    if (isDark) {
+        AppPalette(
+            background = Color(0xFF101C35),
+            card = Color(0xFF1A2A4A),
+            aiCard = Color(0xFF162544),
+            text = Color.White,
+            secondary = Color.LightGray,
+            accent = Color(0xFF64B5F6)
+        )
+    } else {
+        AppPalette(
+            background = Color(0xFFF0F4F8),
+            card = Color(0xFFFFFFFF),
+            aiCard = Color(0xFFE2E8F0),
+            text = Color(0xFF1E293B),
+            secondary = Color(0xFF64748B),
+            accent = Color(0xFF0284C7)
+        )
+    }
+
+private val trLocale: Locale = Locale.forLanguageTag("tr-TR")
+
+// "izmir", "  ANKARA ", "afyon karahisar" -> "İzmir", "Ankara", "Afyon Karahisar"
+internal fun toCityName(input: String): String =
+    input.trim()
+        .lowercase(trLocale)
+        .split(" ")
+        .filter { it.isNotBlank() }
+        .joinToString(" ") { word ->
+            word.replaceFirstChar { it.uppercase(trLocale) }
+        }
+
+// Türkiye'nin 81 ili (sadece ad listesi). Hava verisi ayrı tutulur (cityDatabase),
+// verisi olmayan şehirler listede görünür ama detayda "Veri henüz yok" der.
+internal val allCities: List<String> = listOf(
+    "Adana",
+    "Adıyaman",
+    "Afyonkarahisar",
+    "Ağrı",
+    "Aksaray",
+    "Amasya",
+    "Ankara",
+    "Antalya",
+    "Ardahan",
+    "Artvin",
+    "Aydın",
+    "Balıkesir",
+    "Bartın",
+    "Batman",
+    "Bayburt",
+    "Bilecik",
+    "Bingöl",
+    "Bitlis",
+    "Bolu",
+    "Burdur",
+    "Bursa",
+    "Çanakkale",
+    "Çankırı",
+    "Çorum",
+    "Denizli",
+    "Diyarbakır",
+    "Düzce",
+    "Edirne",
+    "Elazığ",
+    "Erzincan",
+    "Erzurum",
+    "Eskişehir",
+    "Gaziantep",
+    "Giresun",
+    "Gümüşhane",
+    "Hakkari",
+    "Hatay",
+    "Iğdır",
+    "Isparta",
+    "İstanbul",
+    "İzmir",
+    "Kahramanmaraş",
+    "Karabük",
+    "Karaman",
+    "Kars",
+    "Kastamonu",
+    "Kayseri",
+    "Kilis",
+    "Kırıkkale",
+    "Kırklareli",
+    "Kırşehir",
+    "Kocaeli",
+    "Konya",
+    "Kütahya",
+    "Malatya",
+    "Manisa",
+    "Mardin",
+    "Mersin",
+    "Muğla",
+    "Muş",
+    "Nevşehir",
+    "Niğde",
+    "Ordu",
+    "Osmaniye",
+    "Rize",
+    "Sakarya",
+    "Samsun",
+    "Şanlıurfa",
+    "Siirt",
+    "Sinop",
+    "Sivas",
+    "Şırnak",
+    "Tekirdağ",
+    "Tokat",
+    "Trabzon",
+    "Tunceli",
+    "Uşak",
+    "Van",
+    "Yalova",
+    "Yozgat",
+    "Zonguldak"
+).sortedWith(Collator.getInstance(trLocale))
+
+// Arama için: küçük harf + Türkçe karakterleri sadeleştir ("canakkale" -> "Çanakkale" ile eşleşsin)
+internal fun normalizeForSearch(text: String): String =
+    text.trim().lowercase(trLocale)
+        .replace('ç', 'c').replace('ğ', 'g').replace('ı', 'i')
+        .replace('ö', 'o').replace('ş', 's').replace('ü', 'u').replace('â', 'a')
+
+internal fun matchesQuery(cityName: String, query: String): Boolean =
+    normalizeForSearch(cityName).startsWith(normalizeForSearch(query))
+
+// Yazılan metni listedeki resmi şehir adına çevirir ("canakkale" -> "Çanakkale"), bulamazsa düzeltilmiş hâlini döner
+internal fun resolveCityName(input: String): String {
+    val typed = toCityName(input)
+    return allCities.firstOrNull { normalizeForSearch(it) == normalizeForSearch(typed) } ?: typed
+}
+
+// Uygulamanın giriş noktası (MainActivity hâlâ WeatherScreen() çağırıyor, değişiklik gerekmiyor).
+// Ana sayfa (şehir listesi) ile detay sayfası arasında geçişi yönetir.
 @Composable
 fun WeatherScreen() {
+    // Tema iki sayfada ortak olduğu için burada tutulur
+    var isDarkMode by rememberSaveable { mutableStateOf(true) }
+    // null -> ana sayfa, dolu -> o şehrin detay sayfası
+    var openedCity by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val city = openedCity
+    if (city == null) {
+        CityListScreen(
+            isDarkMode = isDarkMode,
+            onToggleTheme = { isDarkMode = !isDarkMode },
+            onCityClick = { openedCity = it }
+        )
+    } else {
+        // Sistem geri tuşu da detaydan ana sayfaya döndürür
+        BackHandler { openedCity = null }
+        WeatherDetailScreen(
+            initialCity = city,
+            isDarkMode = isDarkMode,
+            onToggleTheme = { isDarkMode = !isDarkMode },
+            onBack = { openedCity = null }
+        )
+    }
+}
+
+// Detay sayfası: önceki WeatherScreen'in aynısı (sadece başlangıç şehri, tema ve geri parametreleri eklendi)
+@Composable
+fun WeatherDetailScreen(
+    initialCity: String,
+    isDarkMode: Boolean,
+    onToggleTheme: () -> Unit,
+    onBack: () -> Unit
+) {
     val scrollState = rememberScrollState()
     var searchQuery by rememberSaveable { mutableStateOf("") }
 
-    // Tema Durumu: true ise Dark Mod, false ise Light Mod
-    var isDarkMode by rememberSaveable { mutableStateOf(true) }
+    // Tema renkleri (ortak paletten)
+    val palette = appPalette(isDarkMode)
+    val backgroundColor = palette.background
+    val cardBackgroundColor = palette.card
+    val aiCardBackgroundColor = palette.aiCard
+    val textColor = palette.text
+    val secondaryTextColor = palette.secondary
+    val accentColor = palette.accent
 
-    // Tema Renk Paletleri
-    val backgroundColor = if (isDarkMode) Color(0xFF101C35) else Color(0xFFF0F4F8)
-    val cardBackgroundColor = if (isDarkMode) Color(0xFF1A2A4A) else Color(0xFFFFFFFF)
-    val aiCardBackgroundColor = if (isDarkMode) Color(0xFF162544) else Color(0xFFE2E8F0)
-    val textColor = if (isDarkMode) Color.White else Color(0xFF1E293B)
-    val secondaryTextColor = if (isDarkMode) Color.LightGray else Color(0xFF64748B)
-    val accentColor = if (isDarkMode) Color(0xFF64B5F6) else Color(0xFF0284C7)
+    var selectedCity by rememberSaveable { mutableStateOf(initialCity) }
 
-    // Şehirlere özel detaylı hava durumu, animasyon türü ve 5 günlük tahmin veritabanı
-    val cityDatabase = mapOf(
-        "İstanbul" to CityWeatherInfo(
-            temp = "19°",
-            condition = "Kapalı / Bulutlu (Hissedilen 18°)",
-            humidity = "%74",
-            wind = "13.8 km/sa",
-            pressure = "1015 hPa",
-            animationType = "cloud",
-            forecasts = listOf(
-                DailyForecast("Pazartesi", "19° / 12°", "Bulutlu"),
-                DailyForecast("Salı", "21° / 13°", "Güneşli"),
-                DailyForecast("Çarşamba", "18° / 11°", "Yağmurlu"),
-                DailyForecast("Perşembe", "20° / 12°", "Parçalı Bulutlu"),
-                DailyForecast("Cuma", "22° / 14°", "Güneşli")
-            )
-        ),
-        "Ankara" to CityWeatherInfo(
-            temp = "16°",
-            condition = "Parçalı Bulutlu (Hissedilen 15°)",
-            humidity = "%65",
-            wind = "10.2 km/sa",
-            pressure = "1018 hPa",
-            animationType = "cloud",
-            forecasts = listOf(
-                DailyForecast("Pazartesi", "16° / 8°", "Parçalı Bulutlu"),
-                DailyForecast("Salı", "18° / 9°", "Güneşli"),
-                DailyForecast("Çarşamba", "15° / 7°", "Yağmurlu"),
-                DailyForecast("Perşembe", "17° / 8°", "Güneşli"),
-                DailyForecast("Cuma", "19° / 10°", "Açık")
-            )
-        ),
-        "İzmir" to CityWeatherInfo(
-            temp = "24°",
-            condition = "Güneşli (Hissedilen 23°)",
-            humidity = "%50",
-            wind = "15.0 km/sa",
-            pressure = "1012 hPa",
-            animationType = "sun",
-            forecasts = listOf(
-                DailyForecast("Pazartesi", "24° / 15°", "Güneşli"),
-                DailyForecast("Salı", "26° / 16°", "Açık"),
-                DailyForecast("Çarşamba", "23° / 14°", "Bulutlu"),
-                DailyForecast("Perşembe", "25° / 15°", "Güneşli"),
-                DailyForecast("Cuma", "27° / 17°", "Güneşli")
-            )
-        ),
-        "Tekirdağ" to CityWeatherInfo(
-            temp = "17°",
-            condition = "Bulutlu (Hissedilen 16°)",
-            humidity = "%72",
-            wind = "18.0 km/sa",
-            pressure = "1014 hPa",
-            animationType = "cloud",
-            forecasts = listOf(
-                DailyForecast("Pazartesi", "17° / 10°", "Bulutlu"),
-                DailyForecast("Salı", "19° / 11°", "Güneşli"),
-                DailyForecast("Çarşamba", "16° / 9°", "Yağmurlu"),
-                DailyForecast("Perşembe", "18° / 10°", "Parçalı Bulutlu"),
-                DailyForecast("Cuma", "20° / 12°", "Güneşli")
-            )
-        ),
-        "Bursa" to CityWeatherInfo(
-            temp = "18°",
-            condition = "Bulutlu (Hissedilen 17°)",
-            humidity = "%70",
-            wind = "8.5 km/sa",
-            pressure = "1014 hPa",
-            animationType = "rain",
-            forecasts = listOf(
-                DailyForecast("Pazartesi", "18° / 10°", "Bulutlu"),
-                DailyForecast("Salı", "20° / 11°", "Güneşli"),
-                DailyForecast("Çarşamba", "17° / 9°", "Yağmurlu"),
-                DailyForecast("Perşembe", "19° / 10°", "Parçalı Bulutlu"),
-                DailyForecast("Cuma", "21° / 12°", "Güneşli")
-            )
-        ),
-        "Antalya" to CityWeatherInfo(
-            temp = "27°",
-            condition = "Açık / Güneşli (Hissedilen 26°)",
-            humidity = "%45",
-            wind = "12.0 km/sa",
-            pressure = "1010 hPa",
-            animationType = "sun",
-            forecasts = listOf(
-                DailyForecast("Pazartesi", "27° / 18°", "Açık"),
-                DailyForecast("Salı", "28° / 19°", "Güneşli"),
-                DailyForecast("Çarşamba", "26° / 17°", "Güneşli"),
-                DailyForecast("Perşembe", "29° / 20°", "Açık"),
-                DailyForecast("Cuma", "30° / 21°", "Güneşli")
-            )
-        ),
-        "Trabzon" to CityWeatherInfo(
-            temp = "17°",
-            condition = "Yağmurlu (Hissedilen 16°)",
-            humidity = "%80",
-            wind = "14.0 km/sa",
-            pressure = "1011 hPa",
-            animationType = "rain",
-            forecasts = listOf(
-                DailyForecast("Pazartesi", "17° / 11°", "Yağmurlu"),
-                DailyForecast("Salı", "18° / 12°", "Bulutlu"),
-                DailyForecast("Çarşamba", "16° / 10°", "Yağmurlu"),
-                DailyForecast("Perşembe", "19° / 12°", "Parçalı Bulutlu"),
-                DailyForecast("Cuma", "20° / 13°", "Güneşli")
-            )
-        ),
-        "Konya" to CityWeatherInfo(
-            temp = "14°",
-            condition = "Açık (Hissedilen 13°)",
-            humidity = "%48",
-            wind = "9.0 km/sa",
-            pressure = "1020 hPa",
-            animationType = "sun",
-            forecasts = listOf(
-                DailyForecast("Pazartesi", "14° / 5°", "Açık"),
-                DailyForecast("Salı", "16° / 6°", "Güneşli"),
-                DailyForecast("Çarşamba", "15° / 5°", "Parçalı Bulutlu"),
-                DailyForecast("Perşembe", "17° / 7°", "Güneşli"),
-                DailyForecast("Cuma", "18° / 8°", "Açık")
-            )
-        ),
-        "Adana" to CityWeatherInfo(
-            temp = "26°",
-            condition = "Güneşli (Hissedilen 27°)",
-            humidity = "%58",
-            wind = "11.0 km/sa",
-            pressure = "1011 hPa",
-            animationType = "sun",
-            forecasts = listOf(
-                DailyForecast("Pazartesi", "26° / 17°", "Güneşli"),
-                DailyForecast("Salı", "27° / 18°", "Açık"),
-                DailyForecast("Çarşamba", "25° / 16°", "Parçalı Bulutlu"),
-                DailyForecast("Perşembe", "28° / 18°", "Güneşli"),
-                DailyForecast("Cuma", "29° / 19°", "Güneşli")
-            )
-        ),
-        "Gaziantep" to CityWeatherInfo(
-            temp = "20°",
-            condition = "Parçalı Bulutlu (Hissedilen 19°)",
-            humidity = "%52",
-            wind = "10.5 km/sa",
-            pressure = "1016 hPa",
-            animationType = "cloud",
-            forecasts = listOf(
-                DailyForecast("Pazartesi", "20° / 9°", "Parçalı Bulutlu"),
-                DailyForecast("Salı", "22° / 10°", "Güneşli"),
-                DailyForecast("Çarşamba", "19° / 8°", "Bulutlu"),
-                DailyForecast("Perşembe", "21° / 10°", "Güneşli"),
-                DailyForecast("Cuma", "23° / 11°", "Açık")
-            )
-        ),
-        "Samsun" to CityWeatherInfo(
-            temp = "16°",
-            condition = "Yağmurlu (Hissedilen 15°)",
-            humidity = "%78",
-            wind = "16.0 km/sa",
-            pressure = "1013 hPa",
-            animationType = "rain",
-            forecasts = listOf(
-                DailyForecast("Pazartesi", "16° / 11°", "Yağmurlu"),
-                DailyForecast("Salı", "17° / 12°", "Bulutlu"),
-                DailyForecast("Çarşamba", "15° / 10°", "Yağmurlu"),
-                DailyForecast("Perşembe", "18° / 12°", "Parçalı Bulutlu"),
-                DailyForecast("Cuma", "19° / 13°", "Güneşli")
-            )
-        ),
-        "Eskişehir" to CityWeatherInfo(
-            temp = "15°",
-            condition = "Bulutlu (Hissedilen 14°)",
-            humidity = "%62",
-            wind = "12.0 km/sa",
-            pressure = "1017 hPa",
-            animationType = "cloud",
-            forecasts = listOf(
-                DailyForecast("Pazartesi", "15° / 6°", "Bulutlu"),
-                DailyForecast("Salı", "17° / 7°", "Güneşli"),
-                DailyForecast("Çarşamba", "14° / 5°", "Yağmurlu"),
-                DailyForecast("Perşembe", "16° / 6°", "Parçalı Bulutlu"),
-                DailyForecast("Cuma", "18° / 8°", "Güneşli")
-            )
-        )
-    )
-
-    var selectedCity by rememberSaveable { mutableStateOf("İstanbul") }
-
-    val trLocale = remember { Locale.forLanguageTag("tr-TR") }
     val keyboardController = LocalSoftwareKeyboardController.current
-
-    // "izmir", "  ANKARA ", "afyon karahisar" -> "İzmir", "Ankara", "Afyon Karahisar"
-    fun toCityName(input: String): String =
-        input.trim()
-            .lowercase(trLocale)
-            .split(" ")
-            .filter { it.isNotBlank() }
-            .joinToString(" ") { word ->
-                word.replaceFirstChar { it.uppercase(trLocale) }
-            }
 
     // Klavyeden Ara/Enter veya 🔍 ile şehri seç
     fun submitSearch() {
-        val name = toCityName(searchQuery)
+        val name = resolveCityName(searchQuery)
         if (name.isNotBlank()) {
             selectedCity = name
             searchQuery = ""
@@ -282,29 +455,14 @@ fun WeatherScreen() {
 
     // Ekranda gösterilen şehir: sadece Ara'ya basınca veya karta tıklayınca değişir
     val activeCityName = selectedCity
-    val isKnownCity = cityDatabase.containsKey(activeCityName)
-
-    val activeWeatherInfo = cityDatabase[activeCityName] ?: CityWeatherInfo(
-        temp = "21°",
-        condition = "Parçalı Bulutlu (Hissedilen 20°)",
-        humidity = "%60",
-        wind = "11.5 km/sa",
-        pressure = "1016 hPa",
-        animationType = "sun",
-        forecasts = listOf(
-            DailyForecast("Pazartesi", "21° / 13°", "Parçalı Bulutlu"),
-            DailyForecast("Salı", "23° / 14°", "Güneşli"),
-            DailyForecast("Çarşamba", "20° / 12°", "Açık"),
-            DailyForecast("Perşembe", "22° / 13°", "Güneşli"),
-            DailyForecast("Cuma", "24° / 15°", "Güneşli")
-        )
-    )
+    // Veritabanında yoksa null -> ekranda "Şehir bulunamadı" durumu gösterilir (sahte veri yok)
+    val activeWeatherInfo: CityWeatherInfo? = cityDatabase[activeCityName]
 
     // Alttaki şehir listesi yazdıkça canlı filtrelenmeye devam eder
     val filteredCities = if (formattedQuery.isBlank()) {
         cityDatabase.keys.toList()
     } else {
-        cityDatabase.keys.filter { it.startsWith(formattedQuery, ignoreCase = true) }
+        cityDatabase.keys.filter { matchesQuery(it, formattedQuery) }
     }
 
     Column(
@@ -317,6 +475,19 @@ fun WeatherScreen() {
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Ana sayfaya dönüş
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(R.string.back_to_cities),
+                color = accentColor,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clickable { onBack() }
+                    .padding(vertical = 8.dp, horizontal = 4.dp)
+            )
+        }
+
         // Üst Kısım: Arama Kutusu ve Tema Değiştirme Butonu Yan Yana
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -326,7 +497,7 @@ fun WeatherScreen() {
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Şehir adı yazın ve arayın...", color = secondaryTextColor, fontSize = 13.sp) },
+                placeholder = { Text(stringResource(R.string.search_placeholder), color = secondaryTextColor, fontSize = 13.sp) },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -353,7 +524,7 @@ fun WeatherScreen() {
 
             // Sağ üst köşe Tema Geçiş Butonu (☀️ / 🌙)
             Button(
-                onClick = { isDarkMode = !isDarkMode },
+                onClick = onToggleTheme,
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = cardBackgroundColor),
                 modifier = Modifier.height(56.dp).width(60.dp),
@@ -376,106 +547,131 @@ fun WeatherScreen() {
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        if (activeWeatherInfo != null) {
+            Spacer(modifier = Modifier.height(10.dp))
 
-        // Hareketli Hava Durumu İkonu (internet gerektirmez)
-        WeatherAnimatedIcon(animationType = activeWeatherInfo.animationType)
+            // Hareketli Hava Durumu İkonu (internet gerektirmez)
+            WeatherAnimatedIcon(animationType = activeWeatherInfo.animationType)
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        // Sıcaklık
-        Text(
-            text = activeWeatherInfo.temp,
-            color = textColor,
-            fontSize = 56.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        // Hava Durumu Açıklaması
-        Text(
-            text = activeWeatherInfo.condition,
-            color = secondaryTextColor,
-            fontSize = 14.sp
-        )
-
-        // Veritabanında olmayan şehirler için bilgi notu
-        if (!isKnownCity) {
-            Spacer(modifier = Modifier.height(4.dp))
+            // Sıcaklık
             Text(
-                text = "ℹ️ Bu şehir için örnek veri gösteriliyor",
+                text = activeWeatherInfo.temp,
+                color = textColor,
+                fontSize = 56.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            // Hava Durumu Açıklaması
+            Text(
+                text = activeWeatherInfo.condition,
                 color = secondaryTextColor,
-                fontSize = 11.sp
+                fontSize = 14.sp
             )
-        }
 
-        Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-        // Detay Kartları (Nem, Rüzgar, Basınç)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            WeatherDetailCard(title = "Nem", value = activeWeatherInfo.humidity, cardColor = cardBackgroundColor, textColor = textColor, secondaryColor = secondaryTextColor)
-            WeatherDetailCard(title = "Rüzgar", value = activeWeatherInfo.wind, cardColor = cardBackgroundColor, textColor = textColor, secondaryColor = secondaryTextColor)
-            WeatherDetailCard(title = "Basınç", value = activeWeatherInfo.pressure, cardColor = cardBackgroundColor, textColor = textColor, secondaryColor = secondaryTextColor)
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "✨ Yapay Zeka Asistanı Önerileri",
-                color = accentColor,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
-
-        AIRecommendationCard(
-            title = "🧥 Kıyafet Önerisi",
-            content = "$activeCityName için anlık hava koşullarına uygun katmanlı giysiler ve mevsimlik dış giyim tercih edebilirsin.",
-            cardColor = aiCardBackgroundColor,
-            textColor = textColor,
-            accentColor = accentColor
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        AIRecommendationCard(
-            title = "🚶‍♂️ Aktivite Önerisi",
-            content = "$activeCityName genelinde dışarıda vakit geçirmek ve plan yapmak için havanın durumunu değerlendirebilirsin.",
-            cardColor = aiCardBackgroundColor,
-            textColor = textColor,
-            accentColor = accentColor
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 5 Günlük Hava Durumu Tahmini
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "📅 5 Günlük Hava Durumu ($activeCityName)",
-                color = accentColor,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
-
-        Card(
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            // Detay Kartları (Nem, Rüzgar, Basınç)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                activeWeatherInfo.forecasts.forEach { forecast ->
-                    DailyForecastRow(day = forecast.day, temp = forecast.temp, condition = forecast.condition, textColor = textColor, secondaryColor = secondaryTextColor, accentColor = accentColor)
+                WeatherDetailCard(title = stringResource(R.string.label_humidity), value = activeWeatherInfo.humidity, cardColor = cardBackgroundColor, textColor = textColor, secondaryColor = secondaryTextColor)
+                WeatherDetailCard(title = stringResource(R.string.label_wind), value = activeWeatherInfo.wind, cardColor = cardBackgroundColor, textColor = textColor, secondaryColor = secondaryTextColor)
+                WeatherDetailCard(title = stringResource(R.string.label_pressure), value = activeWeatherInfo.pressure, cardColor = cardBackgroundColor, textColor = textColor, secondaryColor = secondaryTextColor)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.ai_section_title),
+                    color = accentColor,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            AIRecommendationCard(
+                title = stringResource(R.string.ai_clothing_title),
+                content = stringResource(R.string.ai_clothing_content, activeCityName),
+                cardColor = aiCardBackgroundColor,
+                textColor = textColor,
+                accentColor = accentColor
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            AIRecommendationCard(
+                title = stringResource(R.string.ai_activity_title),
+                content = stringResource(R.string.ai_activity_content, activeCityName),
+                cardColor = aiCardBackgroundColor,
+                textColor = textColor,
+                accentColor = accentColor
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 5 Günlük Hava Durumu Tahmini
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.forecast_title, activeCityName),
+                    color = accentColor,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    activeWeatherInfo.forecasts.forEach { forecast ->
+                        DailyForecastRow(day = forecast.day, temp = forecast.temp, condition = forecast.condition, textColor = textColor, secondaryColor = secondaryTextColor, accentColor = accentColor)
+                    }
+                }
+            }
+        } else {
+            // Verisi yok: şehir listede varsa "veri henüz yok", hiç yoksa "şehir bulunamadı"
+            val hasNoData = activeCityName in allCities
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = cardBackgroundColor),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = if (hasNoData) "⏳" else "🔎", fontSize = 40.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(if (hasNoData) R.string.city_no_data_title else R.string.city_not_found_title),
+                        color = accentColor,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = stringResource(if (hasNoData) R.string.city_no_data_message else R.string.city_not_found_message, activeCityName),
+                        color = secondaryTextColor,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
@@ -485,7 +681,7 @@ fun WeatherScreen() {
         // Filtrelenmiş Şehirler / Sık Bakılan Şehirler Bölümü
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = if (formattedQuery.isNotBlank()) "🔍 Arama Sonuçları" else "📍 Sık Bakılan Şehirler",
+                text = if (formattedQuery.isNotBlank()) stringResource(R.string.search_results_title) else stringResource(R.string.favorite_cities_title),
                 color = accentColor,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
@@ -495,7 +691,7 @@ fun WeatherScreen() {
 
         if (filteredCities.isEmpty()) {
             Text(
-                text = "Aradığınız kritere uygun şehir bulunamadı.",
+                text = stringResource(R.string.no_city_match),
                 color = secondaryTextColor,
                 fontSize = 13.sp,
                 modifier = Modifier.padding(vertical = 8.dp)
