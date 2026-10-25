@@ -25,3 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "MeteoraWeather"
 include(":app")
  
+include(":feature-weather", ":feature-ai")
