@@ -90,8 +90,8 @@ Yol haritasındakiler: ViewModel + StateFlow · Coroutines · Retrofit 2 + Gson 
    ```bash
    git clone https://github.com/MerveTatvan/MeteoraWeather.git
    ```
-2. Android Studio ile aç ve Gradle senkronizasyonunun bitmesini bekle.
-3. Emülatör veya gerçek cihazda **Run ▶** de.
+2. Android Studio ile aç ve Gradle senkronizasyonunun tamamlanması beklenir.
+3. Emülatör veya gerçek cihazda **Run ▶** ile çalışır.
 
 Şu an ağ bağlantısı gerekmez, tüm veri uygulama içindedir.
 
